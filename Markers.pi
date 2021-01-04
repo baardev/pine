@@ -1,0 +1,83 @@
+//@version=4
+study(title="Spot MA crosses with labels", overlay=false)
+
+fastLen = input(title="Fast", type=input.integer, defval=9)
+slowLen = input(title="Slow", type=input.integer, defval=26)
+deltaLen = input(title="Slow", type=input.integer, defval=5)
+
+// Calculate and plot the moving averages
+fastMA = sma(rsi(close, fastLen),fastLen)
+slowMA = sma(rsi(close, slowLen),fastLen)
+deltaMA=fastMA-slowMA
+
+plot(series=fastMA, color=color.orange,linewidth=2, title="Fast MA")
+plot(series=slowMA, color=color.green, linewidth=2, title="Slow MA")
+plot(series=deltaMA, color=color.purple, linewidth=2, title="Delta MA")
+plot(series=deltaMA[deltaLen], color=color.orange, linewidth=2, title="Delta MA")
+
+// See if the moving averages crossed
+maCross = cross(deltaMA, deltaMA[deltaLen])
+
+// float[] gx = na
+var gx = array.new_float(0)
+var gy = array.new_float(0)
+var rx = array.new_float(0)
+var ry = array.new_float(0)
+var delta = array.new_float(0)
+
+
+trigger = false
+
+array.push(delta, close)
+
+// When there's a cross, make a label
+if (maCross)
+
+    // crossLabel = label.new(x=bar_index, y=na)
+    // label.set_textcolor(crossLabel, color.white)
+    
+    // Label style, colour, location depend on moving averages
+    if (deltaMA > deltaMA[1])
+        array.push(gx, close)
+        array.push(gy, bar_index)
+        
+        // label.new(bar_index, 0, tostring(close), size = size.large, color=color.green)
+
+        // label.set_style(id=crossLabel, style=label.style_circle)
+        // label.set_color(id=crossLabel, color=color.green)
+        // label.set_yloc(id=crossLabel, yloc=yloc.belowbar)
+        // label.set_size(id=crossLabel, size=size.tiny)
+        // label.set_text(crossLabel,"BUY")
+    else 
+        array.push(rx, close)
+        array.push(ry, bar_index)
+        
+        // label.new(bar_index, 0, tostring(close), size = size.large, color=color.red)
+
+        // Make a trend line
+        // myline=line.new(x1=bar_index[10], y1=close[10], x2=bar_index, y2=close)
+        // myline=line.new(x1=greenxLoc, y1=greenyLoc, x2=bar_index, y2=close)
+        // line.set_color(myline,color=color.yellow)
+        
+        // label.set_style(id=crossLabel, style=label.style_circle)
+        // label.set_color(id=crossLabel, color=color.red)
+        // label.set_yloc(id=crossLabel, yloc=yloc.abovebar)
+        // label.set_size(id=crossLabel, size=size.tiny)
+        // label.set_text(crossLabel,"SELL")
+        
+// if barstate.islast
+//     label.new(bar_index, 0, "Array size: " + tostring(array.size(gx)) + "\nbar_index: " + tostring(bar_index), size = size.large)
+
+// Remove last element from the stack when `_cond` is true.
+// f_array_pop(_id, _cond) => _cond and array.size(_id) > 0 ? array.pop(_id) : float(na)
+
+
+// _gx = array.pop(gx)
+
+
+
+// myLine = line.new(time, high, time, low, xloc.bar_time)
+
+// Switch to bar numbers
+// line.set_xloc(myLine, bar_index, bar_index, xloc.bar_index)
+

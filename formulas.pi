@@ -1,0 +1,109 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © duncanstroud
+
+//@version=4
+study("My Script", overlay=false)
+
+// smooth(src,d,n) =>
+//     k = src
+//     for i = 0 to n
+//         k := ema(k,d)
+//     rs = k
+
+
+d1len = input(title="D1 Len", type=input.integer, defval=30)
+d2len = input(title="D2 Len", type=input.integer, defval=35)
+
+
+normalize(_src, _min, _max) => 
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+
+scaleTo(ser,lo,hi) =>
+    ser > hi ? hi : ser < lo ? lo : ser
+
+get_Formula_1() =>
+    macd = ema(close, 23) - ema(close, 50)
+    k = nz(fixnan(stoch(macd, macd, macd, 10)))
+    d = ema(k, 3)
+    kd = nz(fixnan(stoch(d, d, d, 10)))
+    stc = ema(kd, 3)
+    stc := 	stc > 100 ? 100 : stc < 0 ? 0 : stc
+    stc := scaleTo(stc,0,100)
+
+get_Formula_2() =>
+    d=100
+    stc = ema(close, d) 
+    stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    stc := normalize(stc,0,100)
+    stc := scaleTo(stc,0,100)
+
+get_Formula_3() =>
+    d=70
+    stc = ema(close, d) 
+    stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    // stc := ema(stc,d)
+    stc := normalize(stc,0,100)
+    stc := scaleTo(stc,0,100)
+
+get_Formula_4() =>
+    d=d1len
+    stc = close >= close[1] ? 1.0 : -1.0
+    stc := ema(stc,2)
+    stc := ema(stc,4)
+    stc := ema(stc,8)
+    stc := ema(stc,16)
+    stc := ema(stc,32)
+    stc := ema(stc,d)
+    stc := ema(stc,d)
+    stc := ema(stc,d)
+    stc := normalize(stc,0,100)
+    stc := scaleTo(stc,0,100)
+
+get_Formula_5() =>
+    d=d2len
+    stc = close >= close[1] ? 1.0 : -1.0
+    stc := ema(stc,2)
+    stc := ema(stc,4)
+    stc := ema(stc,8)
+    stc := ema(stc,16)
+    stc := ema(stc,32)
+    stc := ema(stc,d)
+    stc := ema(stc,d)
+    stc := ema(stc,d)
+    stc := normalize(stc,0,100)
+    stc := scaleTo(stc,0,100)
+
+hline(50)
+
+// f4 = get_Formula_4()
+// plot(f4,color=color.red)
+
+
+
+
+f2 = get_Formula_4()
+f3 = get_Formula_5()
+
+delta = f3-f2
+// delta:= delta * delta
+// delta := scaleTo(delta,-100,100)
+// delta := normalize(delta,0,100)
+
+
+// plot(f2,color=color.red)
+// plot(f3,color=color.blue)
+plot(delta,color=color.yellow)

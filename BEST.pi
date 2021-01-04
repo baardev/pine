@@ -1,0 +1,79 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Peter_O
+
+//@version=4
+strategy(title="TradingView Alerts to MT4 MT5 Strategy example", commission_type=strategy.commission.cash_per_order, commission_value=0.00003, overlay=false, default_qty_value=100, initial_capital=1000)
+//study(title="TradingView Alerts to MT4 MT5 Strategy example")  //uncomment this line and comment previous one to make it a study producing alerts
+//
+// This script was created for educational purposes only.
+// It is showing how to use dynamic variables in TradingView alerts.
+// And how to execute them in Forex, indices and commodities markets
+
+TakeProfitLevel=input(400)
+TakePartialProfitLevel=input(150)
+
+// **** Entries logic **** {
+periodK = input(13, title="K", minval=1)
+periodD = input(3, title="D", minval=1)
+smoothK = input(4, title="Smooth", minval=1)
+k = sma(stoch(close, high, low, periodK), smoothK)
+d = sma(k, periodD)
+plot(k, title="%K", color=color.blue)
+plot(d, title="%D", color=color.orange)
+h0 = hline(80)
+h1 = hline(20)
+fill(h0, h1, color=color.purple, transp=75)
+
+GoLong=crossover(k,d)// and k<80
+GoShort=crossunder(k,d)// and k>20
+// } End of entries logic
+
+// **** Pivot-points and stop-loss logic **** {
+piv_high = pivothigh(high,1,1)
+piv_low = pivotlow(low,1,1)
+var float stoploss_long=low
+var float stoploss_short=high
+
+pl=valuewhen(piv_low,piv_low,0)
+ph=valuewhen(piv_high,piv_high,0)
+
+// ---------------------------------------------------
+// set time range
+// ---------------------------------------------------
+unitsback = 1
+fromTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow) - unitsback, hour(timenow), minute(timenow), second(timenow))
+toTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow), hour(timenow), minute(timenow), second(timenow))
+inDateRange = (time >= fromTime) and (time < toTime)
+
+if inDateRange and GoLong 
+    stoploss_long := low<pl ? low : pl
+if inDateRange and GoShort 
+    stoploss_short := high>ph ? high : ph
+// } End of Pivot-points and stop-loss logic
+
+// **** Trade counter and partial closing mechanism **** {
+var int trade_id=0
+if inDateRange and (GoLong or GoShort)
+    trade_id:=trade_id+1
+
+TakePartialProfitLong = barssince(GoLong)<barssince(GoShort) and crossover(high,(valuewhen(GoLong,close,0)+TakePartialProfitLevel*syminfo.mintick))
+TakePartialProfitShort = barssince(GoLong)>barssince(GoShort) and crossunder(low,(valuewhen(GoShort,close,0)-TakePartialProfitLevel*syminfo.mintick))
+// } End of Trade counter and partial closing mechanism
+
+strategy.entry("Long", strategy.long, when=GoLong)
+strategy.exit("XPartLong", from_entry="Long", qty_percent=50, profit=TakePartialProfitLevel)
+strategy.exit("XLong", from_entry="Long", stop=stoploss_long, profit=TakeProfitLevel)
+strategy.entry("Short", strategy.short, when=GoShort)
+strategy.exit("XPartShort", from_entry="Short", qty_percent=50, profit=TakePartialProfitLevel)
+strategy.exit("XShort", from_entry="Short", stop=stoploss_short, profit=TakeProfitLevel)
+
+// plot_stoploss_long=plot(stoploss_long, title="SLLong", color=na)
+// plot_stoploss_short=plot(stoploss_short, title="SLShort", color=na)
+// plot_trade_id=plot(trade_id, title="Trade_id", color=na)
+// plot_tp_level=plot(TakeProfitLevel, title="TakeProfitLevel", color=na)
+// //defining plots above are required only for the purpose of passing dynamic variables to alerts. Their color is set to 'na' so that they don't display on the screen.
+
+// alertcondition(GoLong, title='Long', message='long slprice={{plot("SLLong")}} tradeid={{plot("Trade_id")}} tp={{plot("TakeProfitLevel")}}')
+// alertcondition(GoShort, title='Short', message='short slprice={{plot("SLShort")}} tradeid={{plot("Trade_id")}} tp={{plot("TakeProfitLevel")}}')
+// alertcondition(TakePartialProfitLong, title='ClosePartLong', message='closepart tradeid={{plot("Trade_id")}} part=0.5')
+// alertcondition(TakePartialProfitShort, title='ClosePartShort', message='closepart tradeid={{plot("Trade_id")}} part=0.5')

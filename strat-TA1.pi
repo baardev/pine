@@ -1,0 +1,298 @@
+//@version=4
+strategy("strat-TA1", overlay=false, pyramiding=0)
+
+// 🔥 
+// 🏹 
+// 🎯 
+
+// ❗ 
+
+// 📝 
+// 📈 
+// 👇  
+// 👆 
+// 📉 
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Function definitions
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// ————— When scale of signal to rescale is known.
+// rescale(_src, _oldMin, _oldMax, _newMin, _newMax) =>
+//     _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+r100(_src) => 
+    _oldMin = lowest(_src,15)
+    _oldMax = highest(_src,15)
+    _newMin = 0
+    _newMax = 100
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+// // ————— Normalize Function when min/max unknown
+// normalize(_src, _min, _max) => 
+//     var _historicMin = +10e10
+//     var _historicMax = -10e10
+//     _historicMin := min(nz(_src, _historicMin), _historicMin)
+//     _historicMax := max(nz(_src, _historicMax), _historicMax)
+//     _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+n100(_src) =>
+    _min = 0
+    _max = 100
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    
+xover(a,b) => // passing up across b
+    crossed = false
+    if a>b and a[1] <= b
+        crossed := true
+
+xunder(a,b) => // passing down across b
+    crossed = false
+    if a<b and a[1] >= b
+        crossed := true
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// set time range
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// BEAR
+fromTime = input(defval = timestamp("25 Jun 2019 13:30 +0000"), title = "Start Time", type = input.time)
+toTime = input(defval = timestamp("19 Dec 2019 13:30 +0000"), title = "End Time", type = input.time)
+
+// fromTime = input(defval = timestamp("01 Sep 2020 13:30 +0000"), title = "Start Time", type = input.time)
+// toTime = input(defval = timestamp("25 Dec 2020 13:30 +0000"), title = "End Time", type = input.time)
+
+inDateRange = (time >= fromTime) and (time < toTime)    //👆
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Indicators
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 EMA  📈
+
+showEMA = input(title="Show EMA", type=input.bool, defval=true)
+iEMA_shortlen = input(title="EMA Short Length", type=input.integer, defval=10)
+iEMA_longlen = input(title="EMA Long Length", type=input.integer, defval=30)
+
+shortEMA = ema(close, iEMA_shortlen)    
+longEMA = ema(close, iEMA_longlen)      
+
+shortEMAup = (shortEMA > shortEMA[1] and shortEMA < longEMA) ? true : false
+shortEMAdn = (shortEMA < shortEMA[1] and shortEMA > longEMA) ? true : false
+
+iEMA_Long = false
+iEMA_Short = false
+
+iEMA_Long := crossover(shortEMA, longEMA)   //👆
+iEMA_Short := crossunder(shortEMA, longEMA) //👆
+
+plot(shortEMA,color=iff(showEMA,color.orange,na))
+plot(longEMA, color=iff(showEMA,color.green,na))
+
+plotchar(iEMA_Long, "iEMA_Long","") 
+plotchar(iEMA_Short, "iEMA_Short","") 
+
+var label iEMA_lbl = na
+label.delete(iEMA_lbl)
+iEMA_lbl := label.new(bar_index, high, text = "EMA", style = label.style_none, size = size.normal)
+label.set_xy(iEMA_lbl, bar_index, longEMA)
+label.set_textcolor(id=iEMA_lbl, textcolor=color.orange)
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 SMA Crossovers 📈
+
+// showSMA = input(title="Show SMA", type=input.bool, defval=false)
+// iSMA_shortlen = input(title="SMA Short Length", type=input.integer, defval=10)
+// iSMA_longlen = input(title="SMA Long Length", type=input.integer, defval=30)
+
+// shortSMA = sma(close, iSMA_shortlen)
+// longSMA = sma(close, iSMA_longlen)
+
+// iSMA_Long = false
+// iSMA_Short = false
+
+// iSMA_Long := crossover(shortSMA, longSMA)   //👆
+// iSMA_Short := crossunder(shortSMA, longSMA) //👆
+
+// plot(shortSMA,color=iff(showSMA,color.orange,na))
+// plot(longSMA, color=iff(showSMA,color.green,na))
+
+// plotchar(iSMA_Long, "iSMA_Long","") 
+// plotchar(iSMA_Short, "iSMA_Short","") 
+
+// var label iSMA_lbl = na
+// label.delete(iSMA_lbl)
+// iSMA_lbl := label.new(bar_index, high, text = "SMA", style = label.style_none, size = size.normal)
+// label.set_xy(iSMA_lbl, bar_index, longSMA)
+// label.set_textcolor(id=iSMA_lbl, textcolor=color.orange)
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 Get Bull/Bear Trend 📈
+
+
+showBB = input(title="Show Bull/Bear", type=input.bool, defval=true)
+iBB_hi = input(title="BB upper limit", type=input.integer, defval=50, minval=50, maxval=100)
+iBB_lo = input(title="BB lower limit", type=input.integer, defval=50, minval=0, maxval=50)
+
+
+
+BullTrend = (close - lowest(low, 50)) / atr(5)
+BearTrend = (highest(high, 50) - close) / atr(5)
+
+Trend = BullTrend - BearTrend
+
+et = ema(r100(Trend),1)
+et := ema(et,2)
+et := ema(et,4)
+et := ema(et,8)
+et := ema(et,16)
+
+bool isBull = na
+bool isBear = na
+bool isFallingBull = na
+bool isRisingBear = na
+
+isBull := et > 50 ? true : false            //👆
+isBear := et < 51 ? true : false            //👆
+isFallingBull := et > et[1] ? true : false  //👆
+isRisingBear := et < et[1]? true : false    //👆
+
+bgcolor(et < iBB_lo ? (inDateRange ? iff(showBB,color.red,na) : na) : na, transp=75)
+bgcolor(et > iBB_hi ? (inDateRange ? iff(showBB,color.green,na) : na) : na, transp=75)
+
+hline(50, color=iff(showBB,color.purple,na))
+hline(iBB_hi, color=iff(showBB,color.purple,na))
+hline(iBB_lo, color=iff(showBB,color.purple,na))
+
+plot(et, color=iff(showBB,color.purple,na))
+
+plotchar(isBull, "isBull","")
+plotchar(isBear, "isBear","")
+plotchar(isFallingBull, "isFallingBull","")
+plotchar(isRisingBear, "isRisingBear","")
+
+var label iBB_lbl = na
+label.delete(iBB_lbl)
+
+iBB_lbl := label.new(bar_index, high, text = "BullBear", style = label.style_none, size = size.normal)
+label.set_xy(iBB_lbl, bar_index, et)
+label.set_textcolor(id=iBB_lbl, textcolor=color.purple)
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 Get Bull/Bear Large Trend 📈
+
+// // plot(close)
+
+// iLrsi = close
+// iLBB = (iLrsi-iLrsi[3])
+
+// p = rsi(ema(iLBB,33),33)
+// // p := ema(p,33)
+
+// plot(p) 
+// hline(40)
+// hline(50)
+// hline(60)
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 RSI Limits 📈
+
+showRSI = input(title="Show RSI", type=input.bool, defval=true)
+iRSI_len = input(title="RSI Length", type=input.integer, defval=14)
+iRSI_hi = input(title="RSI Length", type=input.integer, defval=70) 
+iRSI_lo = input(title="RSI Length", type=input.integer, defval=30)
+
+
+iRSI = rsi(close, iRSI_len)
+
+iRSI_Long = false
+iRSI_Short = false
+
+iRSI_Long := iRSI < iRSI_lo ? true : false   //👆
+iRSI_Short:= iRSI > iRSI_hi ? true : false   //👆
+
+plot(iRSI, color=iff(showRSI,color.yellow,na))
+
+bgcolor(et < iBB_lo ? (inDateRange ? color.red : na) : na, transp=99)
+bgcolor(et > iBB_hi ? (inDateRange ? color.green : na): na, transp=99)
+
+hline(iRSI_hi, color=iff(showRSI,color.yellow,na))
+hline(iRSI_lo, color=iff(showRSI,color.yellow,na))
+
+plotchar(iRSI_Long, "iRSI_Long","")
+plotchar(iRSI_Short, "iRSI_Short","")
+
+
+var label iRSI_lbl = na
+label.delete(iRSI_lbl)
+iRSI_lbl := label.new(bar_index, high, text = "                               RSI", style = label.style_none, size = size.normal)
+label.set_xy(iRSI_lbl, bar_index, iRSI)
+label.set_textcolor(id=iRSI_lbl, textcolor=color.yellow)
+
+
+// // ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
+
+// compLine = rsi(longEMA + longSMA + et + stc + iRSI,3)
+
+// plot(compLine, linewidth=3, color=color.aqua)
+// hline(50)
+// hline(70)
+// hline(30)
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Variables
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+atr = atr(14)
+var lastBuyAry  = array.new_float(0)
+lastBuy = 0
+array.push(lastBuyAry,lastBuy)
+stopLoss = low - atr * 2
+takeProfit = high + atr * 2
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Specify conditions and Run
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// goShort = (inDateRange and p > 60) ? true : false
+// goLong = (inDateRange and p <40) ? true : false
+
+// goLong = (inDateRange and iRSI_Long) ? true : false
+// goShort = (inDateRange and iRSI_Short ) ? true : false
+
+// goShort = (inDateRange and iEMA_Short) ? true : false
+// goLong = (inDateRange and iEMA_Long) ? true : false
+
+goShort = (inDateRange and shortEMAdn) ? true : false
+goLong = (inDateRange and shortEMAup) ? true : false
+
+var float startingClose= na
+var float endingClose= na
+var float noTrade = na
+var string noTradeStr = na
+plotchar(startingClose, "startingClose","")
+plotchar(endingClose, "endingClose","")
+plotchar(noTrade, "noTrade","")
+
+
+if goLong 
+    strategy.entry(id="L", long=true, qty=10)
+    if not startingClose
+        startingClose := close 
+
+if goShort     
+    // strategy.entry(id="long", long=true, qty=10)
+    strategy.close(id="L") 
+    // strategy.exit("short", stop=stopLoss, when = not goShort)
+    endingClose := close
+
+noTrade := ((endingClose - startingClose) / startingClose) * 100 
+// ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
+ 
+
+// strategy.exit("exit", "long", stop=stopLoss, limit=takeProfit)
+
+// if (goShort) 
+//     stopLoss = high + atr * 2
+//     takeProfit = low - atr * 2
+//     strategy.entry("short", strategy.short, 100, when = rsi < 50)
+    //  strategy.exit("exit", "short", stop=stopLoss, limit=takeProfit)
+

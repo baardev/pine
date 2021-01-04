@@ -1,0 +1,239 @@
+//@version=4
+strategy("strat-TA5-delta-saw",
+     overlay=false,
+     pyramiding=0,
+     initial_capital=1000, 
+     currency=currency.USD,
+     scale=scale.right,
+     default_qty_type=strategy.cash, 
+     default_qty_value=1000,
+     commission_type=strategy.commission.percent, 
+     commission_value=0.15
+     )
+
+// 🔥 🏹 🎯 ❗ 📝 📈 👇 👆📉 
+
+// Verions stats.
+// 54.0  STABLE
+// 116 recovered versions
+
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Function definitions
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+r100(_src) => 
+    _oldMin = lowest(_src,150)
+    _oldMax = highest(_src,150)
+    _newMin = 0
+    _newMax = 100
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+n100(_src) =>
+    _min = 0
+    _max = 100
+    var _historicMin =  10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+
+xover(a,b) => // passing up across b.  This is TRAILING from under and LEADING from above
+    crossed = false
+    if a>b and a[1] <= b
+        crossed := true
+
+xunder(a,b) => // a passing down across b.  This is TRAILFROM from above and LEADING from unser
+    crossed = false
+    if a<b and a[1] >= b 
+        crossed := true
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// set time range
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// ALL
+ftx = timestamp("25 Jun 2000 13:30 +0000")
+ttx = timestamp("19 Dec 2100 13:30 +0000")
+
+// BEAR
+ft0 = timestamp("25 Jun 2019 13:30 +0000")
+tt0 = timestamp("19 Dec 2019 13:30 +0000")
+ 
+// last year
+ft1 = timestamp("15 Dec 2019 20:00 +0000") 
+tt1 = timestamp("30 Dec 2020 13:30 +0000")
+
+// last month
+ft2 = timestamp("30 Nov 2020 20:00 +0000")  
+tt2 = timestamp("30 Dec 2020 13:30 +0000")
+
+// Big Bear
+ft3 = timestamp("5 May 2018 00:00 +0000") 
+tt3 = timestamp("9 Dec 2018 00:00 +0000")
+
+// Small Bear
+ft4 = timestamp("1 Dec 2020 18:45 +0000") 
+tt4 = timestamp("17 Dec 2020 06:35 +0000")
+
+// flat
+ft5 = timestamp("1 Aug 2020 00:00 +0000") 
+tt5 = timestamp("1 Sep 2020 00:00 +0000")
+
+
+fromTime = input(defval = ft5, title = "Start Time", type = input.time)
+toTime   = input(defval = tt5, title = "End Time", type = input.time)
+
+inDateRange = (time >= fromTime) and (time < toTime)
+
+hline(100, linestyle=hline.style_solid, color=color.gray)
+hline(0, linestyle=hline.style_solid, color=color.gray) 
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Indicators
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 APO 1hr 📈
+
+showAPO = input(title="Show APO60 (GRN)", type=input.bool, defval=true) 
+LengthShortEMA = input(12, title="APO short", minval=1)
+LengthLongEMA = input(26, title="APO long",minval=1)
+xAPO_hi = input(title="API hi", type=input.integer, defval=50,maxval=100,minval=50 ) 
+xAPO_lo = input(title="API lo", type=input.integer, defval=50, maxval=50,minval=0)
+APOres = input('60', title="🟠 APO Time Frame", type=input.resolution) 
+
+hline(xAPO_hi, color=iff(showAPO,color.purple,na))
+hline(xAPO_lo, color=iff(showAPO,color.purple,na)) 
+
+xShortEMA = security(syminfo.tickerid, APOres, ema(close,LengthShortEMA))    
+xLongEMA = security(syminfo.tickerid, APOres, ema(close,LengthLongEMA))    
+
+_xAPO = xShortEMA - xLongEMA
+xAPO = _xAPO
+xAPO := r100(ema(xAPO,16))
+
+xAPO_over = (xAPO >=xAPO_hi)  ? true : false 
+xAPO_under = (xAPO <= xAPO_lo) ? true : false
+
+areaColor3 = inDateRange ? color.green : na
+areaPlot3 = plot(xAPO, title="APO",style=plot.style_area, transp=75,linewidth=2,color=iff(showAPO,areaColor3,na)) 
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 Vol osc 📈 
+
+// shortlen = input(5, minval=1)
+// longlen = input(10, minval=1)
+// short = ema(volume, shortlen)
+// long = ema(volume, longlen)
+// osc = 100 * (short - long) / long
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 RSI Limits 5 minutes 📈 
+ 
+showRSI = input(title="Show RSI (RED)", type=input.bool, defval=true)
+showRSId = input(title="Show RSI Delta (BLU)", type=input.bool, defval=true)
+iRSI_len = input(title="RSI Length", type=input.integer, defval=14)
+iRSI_hi = input(title="RSI hi", type=input.integer, defval=100) 
+iRSI_lo = input(title="RSI lo", type=input.integer, defval=27)
+iRSI_d = input(title="RSI delta", type=input.integer, defval=1)
+RSIres = input('5', title="🟠 RSI Time Frame", type=input.resolution) 
+
+_iRSI= security(syminfo.tickerid, RSIres, rsi(close,iRSI_len))    
+
+iRSI = _iRSI
+iRSI := r100(ema(iRSI,14))
+iRSIb=iRSI[iRSI_d]
+
+iRSIdelta = iRSI - iRSIb
+iRSIdelta := r100(iRSIdelta) 
+iRSI_Long = false
+iRSI_Short = false
+
+iRSI_Long := iRSI <= iRSI_lo ? true : false   //👆
+iRSI_Short:= iRSI >= iRSI_hi ? true : false   //👆
+
+areaColor = inDateRange ? color.red : na
+areaPlot = plot(iRSI, style=plot.style_area,transp=75,color=iff(showRSI,areaColor,na)) 
+
+areaColor2 = inDateRange ? color.blue : na
+areaPlot2 = plot(iRSIdelta,style=plot.style_area, transp=75,color=iff(showRSId,areaColor2,na)) 
+
+// plotchar(iRSI,"iRSI","")
+// plotchar(iRSIdelta,"iRSIdelta","")
+
+hline(iRSI_hi, color=iff(showRSI,color.olive,na))
+hline(iRSI_lo, color=iff(showRSI,color.olive,na))
+
+// SELL When 
+//  RED < hi mark & Previous RED >= hi mark (def 100)  ->  when RED begins to descend from maximum position 
+//      - OR - 
+//  RED is above the hi mark (def 100) and GREEN is above hi mark (def 50, Bullish)
+
+
+
+
+// RED_desc_from_max = (iRSI < iRSI_hi and iRSI[1] >=iRSI_hi)
+// RED_hi = (iRSI >= iRSI_hi)
+
+// sawSell= (RED_desc_from_max or RED_hi) and (xAPO_over)
+
+// BLU_lt_RED_lt_lo = (iRSIdelta < iRSI) and (iRSI < iRSI_lo)
+// RED_crrossed_up = (iRSI > 0 and iRSI[1] <= 0)
+
+// sawBuy = BLU_lt_RED_lt_lo or RED_crrossed_up
+
+
+
+sawSell= ((iRSI < iRSI_hi and iRSI[1] >=iRSI_hi) or (iRSI >= iRSI_hi)) and (xAPO_over)
+sawBuy = (((iRSIdelta < iRSI) and (iRSI < iRSI_lo)) or (iRSI > 0 and iRSI[1] == 0))
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Variables
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// atr = atr(14)
+// var lastBuyAry  = array.new_float(0)
+// lastBuy = 0
+// array.push(lastBuyAry,lastBuy)
+// stopLoss = low - atr * 2
+// takeProfit = high + atr * 2
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Specify conditions and Run
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// BEST + short and long term    1.16/5.03
+// goLong  = (inDateRange and iRSI_Long  and xAPO_over)  ? true : false
+// goShort = (inDateRange and iRSI_Short and xAPO_under) ? true : false
+
+// these had best resukts: 53.7, small bear, ETHUSD
+goLong  = (inDateRange and sawBuy)  ? true : false
+goShort = (inDateRange and sawSell) ? true : false
+
+var float startingClose= na 
+var float endingClose= na
+var float noTrade = na
+var string noTradeStr = na
+var label active = na
+var line aline = na
+
+
+if goLong 
+    strategy.order(id="Buy", limit=high,long=true, qty=1)
+    if not startingClose
+        startingClose := close   
+
+
+if goShort     
+    // stopLoss = high + atr * 2
+    // takeProfit = low - atr * 2
+    // strategy.entry("short", strategy.short, 100, when = rsi < 50)
+    // strategy.exit("exit", "short", stop=stopLoss, limit=takeProfit)
+
+    strategy.entry(id="Sell", limit=low,long=false, qty=1)  
+    endingClose := close
+
+noTrade := ((endingClose - startingClose) / startingClose) * 100 
+
+// ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
+ 

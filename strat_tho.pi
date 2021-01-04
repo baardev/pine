@@ -1,0 +1,241 @@
+//@version=4
+strategy("strat", overlay=false)
+
+
+// -------------------------------------------------------------------------
+// Function definitions
+// -------------------------------------------------------------------------
+
+// ————— When scale of signal to rescale is known.
+rescale(_src, _oldMin, _oldMax, _newMin, _newMax) =>
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+r100(_src) => 
+    _oldMin = lowest(_src,15)
+    _oldMax = highest(_src,15)
+    _newMin = 0
+    _newMax = 100
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+// ————— Normalize Function when min/max unknown
+normalize(_src, _min, _max) => 
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+n100(_src) =>
+    _min = 0
+    _max = 100
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+
+// ————— 
+qnorm(_src, _min, _max,len) => 
+    var _hMin = 10e10
+    var _hMax = -10e10
+	s_src = ema(_src,len)
+    _hMin := min(nz(s_src, _hMin), _hMin)
+    _hMax := max(nz(s_src, _hMax), _hMax)
+    _min + (_max - _min) * (s_src - _hMin) / max(_hMax - _hMin, _hMin)
+
+// ————— 
+proc(_src,len) =>
+    // x=ema(_src,len)
+    // y=ema(x,len)
+    // z=ema(y,len)
+	a=qnorm(_src,0,1,len)
+//	a=normalize(z,0,100)
+//	b=rescale(rsi(a, 14), 0, 100, -100, 100), color = color.fuchsia)
+	b=rsi(_src, len)
+// 	b=rescale(rsi(a, 14), lowest(a,len), highest(a,len), 0, 100)
+    c=ema(b,len)
+    d=ema(c,len)
+    e=ema(d,len)
+
+// -------------------------------------------------------------------------
+// Get Inputs
+// -------------------------------------------------------------------------
+len = input(title="Length", type=input.integer, defval=5)
+
+
+
+// Create Indicator's
+shortSMA = sma(close, 10)
+longSMA = sma(close, 30)
+rsi = rsi(close, 14)
+atr = atr(14)
+
+// 
+
+var lastBuyAry  = array.new_float(0)
+lastBuy = 0
+array.push(lastBuyAry,lastBuy)
+
+V=proc(high-low,13)
+I=proc(volume,13)
+R=proc(V/I,13)
+P=proc(I*I*R,13)
+
+// plot(V, color=color.red)
+
+// xunder(a,b) => // a passed up and through b
+//     crossed = false
+//     if a>b and a[1] <= b
+//         crossed := true
+
+// xover(a,b) => // a passed down and through b
+//     crossed = false
+//     if a<b and b[1] <= b
+//         crossed := true
+
+xover(a,b) => // passing up across b
+    crossed = false
+    if a>b and a[1] <= b
+        crossed := true
+
+xunder(a,b) => // passing down across b
+    crossed = false
+    if a<b and a[1] >= b
+        crossed := true
+
+
+
+
+
+
+goLong = false
+goShort = false
+
+
+
+
+
+
+// ---------------------------------------------------
+// set time range
+// ---------------------------------------------------
+// unitsback = 30
+// fromTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow) - unitsback, hour(timenow), minute(timenow), second(timenow))
+// toTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow), hour(timenow), minute(timenow), second(timenow))
+
+// FLATish sample
+// fromTime = timestamp(syminfo.timezone, 2020, 12, 1, 0,0,0)
+// toTime = timestamp(syminfo.timezone, 2020, 12, 11, 0,0,0)
+// BULLish sample
+toTime = timestamp(syminfo.timezone, 2020, 12, 26, 0,0,0)
+fromTime = timestamp(syminfo.timezone, 2020, 12, 11, 0,0,0)
+
+
+
+inDateRange = (time >= fromTime) and (time < toTime)
+
+// ---------------------------------------------------
+// Specify conditions
+// ---------------------------------------------------
+
+
+
+// ***
+// Standard EMA
+// ***
+// Plot Moving Average's to chart
+// plot(shortSMA, color=color.red)
+// plot(longSMA, color=color.green)
+// longCondition = crossover(shortSMA, longSMA)
+// shortCondition = crossunder(shortSMA, longSMA)
+// ***
+// Tholonic
+// ***
+
+// longCondition = xover(V,I) 
+// shortCondition = xunder(V,I)
+
+// flat = -163%, 
+// plot(I, color=color.red)
+// plot(V, color=color.blue)
+// longCondition = xover(I,V) 
+// shortCondition = xunder(I,V)
+
+// flat = -48%
+// plot(I, color=color.red)
+// plot(V, color=color.blue)
+// longCondition = xover(V,I) 
+// shortCondition = xunder(V,I)
+
+//flat = -230%
+// plot(R, color=color.green)
+// plot(V, color=color.blue)
+// longCondition = xover(V,R) 
+// shortCondition = xunder(V,R)
+
+// flat = -48
+// plot(R, color=color.green)
+// plot(V, color=color.blue)
+// longCondition = xover(R,V) 
+// shortCondition = xunder(R,V)
+
+// flat = -59%
+// plot(R, color=color.green)
+// plot(I, color=color.red)
+// longCondition = xover(R,I) 
+// shortCondition = xunder(R,I)
+
+// flat = -225%
+// plot(R, color=color.green)
+// plot(I, color=color.red)
+// plot(I-R, color=color.yellow)
+// longCondition = xover(I,R) 
+// shortCondition = xunder(I,R)
+
+
+
+// ********************************************************
+IR=n100(I-R)
+VR=n100(V-R)
+VI=n100(V-I)
+
+// plot(IR, color=color.yellow)  // these two are identiacal
+// plot(VR, color=color.purple)  // and oppositye teh price curve
+
+// plot(n100(VI), color=color.aqua)
+XD = n100(n100(VI-VI[6]))
+XD1 = n100(n100(VR-VR[1]))
+// plot(XD, color=color.red)
+// plot(XD1, color=color.green)
+plot(n100(XD-XD1), color=color.yellow)
+plot(n100(XD[3]-XD1[3]), color=color.purple)
+
+longCondition = xover(XD,75) 
+shortCondition = xunder(XD,25)
+
+hline(50)
+// hline(75)
+// hline(25)
+
+// ***********************************************************
+
+
+goLong := (inDateRange and longCondition) ? true : false
+goShort := (inDateRange and shortCondition) ? true : false
+
+
+// Execute trade if condition is Trueif (goLong)
+stopLoss = low - atr * 2
+takeProfit = high + atr * 2
+strategy.entry("long", strategy.long, 100, when=goLong)
+strategy.exit("exit", "long", stop=stopLoss, when = not goShort)
+
+
+// strategy.exit("exit", "long", stop=stopLoss, limit=takeProfit)
+
+// if (goShort) 
+//     stopLoss = high + atr * 2
+//     takeProfit = low - atr * 2
+//     strategy.entry("short", strategy.short, 100, when = rsi < 50)
+    //  strategy.exit("exit", "short", stop=stopLoss, limit=takeProfit)
+

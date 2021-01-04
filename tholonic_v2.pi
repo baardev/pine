@@ -1,0 +1,91 @@
+//@version=4
+study(title="Tholonic Pattern", shorttitle="Tholonic", overlay=false)
+
+proc(_src,len) =>
+	a=rsi(_src, len) 
+    a:=ema(a,len)  // the EMA is taken 3 times here because three EMAs of 4 is a lot smoother and tighter than one EMA of 16
+    a:=ema(a,len)
+    a:=ema(a,len)
+
+// ————— 
+len = input(title="EMA and RSI Length", type=input.integer, defval=5)
+showBlu_V= input(title="Show V (blue - hi/lo delta)?", type=input.bool, defval=true)
+showRed_I= input(title="Show I (red - volume)?", type=input.bool, defval=true)
+showGre_R= input(title="Show R (green - balanced price)?", type=input.bool, defval=true)
+showYel_P= input(title="Show P (yellow - 'power')?", type=input.bool, defval=true)
+showClose= input(title="RSI/EMA of close?", type=input.bool, defval=false)
+hloc= input(title="Use High/Low (vs Open/Close)?", type=input.bool, defval=true)
+
+// using hi-lo vs. close-open has a significent effect
+pole1 = low
+pole2 = high
+
+if hloc
+    pole1 := open
+    pole2 := close
+
+V=pole2-pole1   // Price range defines the range and equates to Voltage, or potential (which equates to FORCE)
+I=volume        // Volume defines the movement and equates to Amperage, or current (which equates to ACCELERATION)
+R=V/I           // Price defines the agreement between two opposing forces and equates to Resistance (which equates to MASS)
+P=V*I           // In the electrical world, this is POWER... no idea what is means here
+C=close
+
+mV=proc(V,len)
+mI=proc(I,len)
+mR=proc(R,len)
+mP=proc(P,len)
+mC=proc(C,len) // Don't know why this has a differenmt scale than the others
+
+lw=1
+plot(series=mV,style=plot.style_line, linewidth=lw, color=iff(showBlu_V,color.blue,na))
+plot(series=mR,style=plot.style_line, linewidth=lw, color=iff(showGre_R,color.green,na))
+plot(series=mI,style=plot.style_line, linewidth=lw, color=iff(showRed_I,color.red,na))
+plot(series=mP,style=plot.style_line, linewidth=lw, color=iff(showYel_P,color.yellow,na))
+plot(series=mC,style=plot.style_line, linewidth=lw*2,color=iff(showClose,color.aqua,na)) 
+hline(50)
+
+var label V_lbl = na
+var label I_lbl = na
+var label R_lbl = na
+var label P_lbl = na
+var label C_lbl = na
+var label notice = na
+
+label.delete(V_lbl)
+label.delete(I_lbl)
+label.delete(R_lbl)
+label.delete(P_lbl)
+label.delete(C_lbl)
+label.delete(notice)
+
+
+spacer ="           " // I don't know how to set the x position to teh right of the last bar :/
+sadd="      "
+V_lbl := label.new(bar_index, high, text = spacer+"V", style = label.style_none, size = size.normal)
+label.set_xy(V_lbl, bar_index, mV)
+label.set_textcolor(id=V_lbl, textcolor=color.blue)
+
+R_lbl := label.new(bar_index, high, text = spacer+sadd+"R", style = label.style_none, size = size.normal)
+label.set_xy(R_lbl, bar_index, mR)
+label.set_textcolor(id=R_lbl, textcolor=color.green)
+
+I_lbl := label.new(bar_index, high, text = spacer+sadd+sadd+"I", style = label.style_none, size = size.normal)
+label.set_xy(I_lbl, bar_index, mI)
+label.set_textcolor(id=I_lbl, textcolor=color.red)
+
+P_lbl := label.new(bar_index, high, text = spacer+sadd+sadd+sadd+"P", style = label.style_none, size = size.normal)
+label.set_xy(P_lbl, bar_index, mP)
+label.set_textcolor(id=P_lbl, textcolor=color.yellow)
+
+if showClose
+    C_lbl := label.new(bar_index, high, text = spacer+sadd+sadd+sadd+sadd+sadd+sadd+"CLOSE", style = label.style_none, size = size.normal)
+    label.set_xy(C_lbl, bar_index, mC)
+    label.set_textcolor(id=C_lbl, textcolor=color.aqua)
+
+noticeTxt = hloc ? "Using High/Low" : "Using Open/Close"
+notice := label.new(bar_index,90, text = noticeTxt, style = label.style_none, size = size.large)
+// label.set_xy(P_lbl, bar_index, mP)
+label.set_textcolor(id=P_lbl, textcolor=color.white)
+
+
+

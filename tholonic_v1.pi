@@ -1,0 +1,112 @@
+//@version=4
+study(title="Tholonic Pattern", shorttitle="Tholonic", overlay=false)
+
+
+// ————— When scale of signal to rescale is known.
+rescale(_src, _oldMin, _oldMax, _newMin, _newMax) =>
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+// ————— Normalize Function when min/max unknown
+normalize(_src, _min, _max) => 
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+
+// ————— 
+qnorm(_src, _min, _max,len) => 
+    var _hMin = 10e10
+    var _hMax = -10e10
+	s_src = ema(_src,len)
+    _hMin := min(nz(s_src, _hMin), _hMin)
+    _hMax := max(nz(s_src, _hMax), _hMax)
+    _min + (_max - _min) * (s_src - _hMin) / max(_hMax - _hMin, _hMin)
+
+// ————— 
+proc(_src,len,hi,lo) =>
+    // x=ema(_src,len)
+    // y=ema(x,len)
+    // z=ema(y,len)
+	a=qnorm(_src,0,1,len)
+//	a=normalize(z,0,100)
+//	b=rescale(rsi(a, 14), 0, 100, -100, 100), color = color.fuchsia)
+	b=rsi(_src, len)
+// 	b=rescale(rsi(a, 14), lowest(a,len), highest(a,len), 0, 100)
+    c=ema(b,len)
+    d=ema(c,len)
+    e=ema(d,len)
+
+
+// ————— 
+len = input(title="Length", type=input.integer, defval=5)
+showBlu= input(title="Show V (blue - hi/lo delta)?", type=input.bool, defval=true)
+showRed= input(title="Show I (red - volume)?", type=input.bool, defval=true)
+showGre= input(title="Show R (green - balanced price)?", type=input.bool, defval=true)
+showYel= input(title="Show P (yellow - 'power')?", type=input.bool, defval=false)
+showPur= input(title="Show IR* (purple - 'tholonic')?", type=input.bool, defval=false)
+showOra= input(title="Show MA* (orange - MA closing)?", type=input.bool, defval=false)
+
+//V=close-open
+V=high-low
+I=volume
+R=V/I
+P=I*I*R
+
+Vhi=highest(ema(high,len),len)
+Vlo=lowest(ema(low,len),len)
+Ihi=highest(ema(I,len),len)
+Ilo=lowest(ema(I,len),len)
+Rhi=highest(ema(R,len),len)
+Rlo=lowest(ema(R,len),len)
+Phi=highest(ema(P,len),len)
+Plo=lowest(ema(P,len),len)
+MAChi=highest(ema(close,len),len)
+MAClo=lowest(ema(close,len),len)
+
+mV=proc(V,len,Vhi,Vlo)
+mI=proc(I,len,Ihi,Ilo)
+mR=proc(R,len,Rhi,Rlo)
+mP=proc(P,len,Phi,Plo)
+MAC=proc(close,len,MAChi,MAClo)
+
+// ————— 
+lw=4
+plot(series=mV,style=plot.style_line, linewidth=lw, color=iff(showBlu,color.blue,na))
+plot(series=mI,style=plot.style_line, linewidth=lw, color=iff(showRed,color.red,na))
+plot(series=mR,style=plot.style_line, linewidth=lw, color=iff(showGre,color.green,na))
+plot(series=mP,style=plot.style_line, linewidth=lw, color=iff(showYel,color.yellow,na))
+
+// nd = ((mV/mI)*(mV/mR)) * 100
+//nd = ((mV-mR)+(mV-mI)) * 1
+nd = (mV+mR+mI)/3
+plot(series=nd,style=plot.style_line, linewidth=2, color=iff(showPur,color.purple,na))
+// plot(series=MAC,style=plot.style_line, linewidth=2, color=iff(showOra,color.orange,na))
+
+// nd = sqrt(mI*mR)
+// plot(series=nd,style=plot.style_line, linewidth=2, color=iff(showD,color.purple,na))
+
+//plot(series=MAC,style=plot.style_line, linewidth=2, color=iff(showE,color.orange,na))
+
+
+
+
+
+
+
+// plotchar(bar_index, "Bar Index1", "", location = location.top)
+// plotchar(Vhi, "Vhi")
+// plotchar(Vlo, "Vlo")
+// plotchar(mV, "mV")
+
+
+// x = bar_index
+// y = close
+// txt = tostring(mV)
+// label.new(x, mV, txt) // print value of close
+// label.new(bar_index, high, text='A', style=label.style_triangledown)
+
+
+
+
+

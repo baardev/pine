@@ -1,0 +1,70 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © duncanstroud
+
+//@version=4
+strategy("max")
+// ema20=ema(close,20)
+// ema50=ema(close,50)
+
+
+firstcrossunder(stc,upper) =>
+    crossed = false
+    if stc > upper and stc[1] <= upper
+        crossed := true
+
+//green dots
+firstcrossover(stc,lower) =>
+    crossed = false
+    if stc < lower and stc[1] >= lower
+        crossed:= true
+
+fastLength = input(title="MACD Fast Length", type=input.integer, defval=23, minval=1)
+slowLength = input(title="MACD Slow Length", type=input.integer, defval=50, minval=1)
+cycleLength = input(title="Cycle Length", type=input.integer, defval=10, minval=1)
+d1Length = input(title="1st %D Length", type=input.integer, defval=3, minval=1)
+d2Length = input(title="2nd %D Length", type=input.integer, defval=3, minval=1)
+upper = input(title="Upper", type=input.integer, defval=75, maxval=100)
+lower = input(title="Lower", type=input.integer, defval=25, minval=0)
+loss_limit = input(title="Loss Limit %", type=input.float, step=0.1, defval=10, minval=0)
+src = input(title="Source", type=input.source, defval=close)
+unitsBack = input(title="Days to Study", type=input.integer, defval=30, minval=1)
+highlightBreakouts = input(title="Highlight Breakouts ?", type=input.bool, defval=true)
+
+
+unitsback = 30
+fromTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow) - unitsback, hour(timenow), minute(timenow), second(timenow))
+toTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow), hour(timenow), minute(timenow), second(timenow))
+
+
+targetDate = time >= timestamp(year(timenow), month(timenow), dayofmonth(timenow) - unitsBack, hour(timenow), minute(timenow), second(timenow))
+beginDate = not targetDate[1] and targetDate
+
+macd = ema(src, fastLength) - ema(src, slowLength)
+k = nz(fixnan(stoch(macd, macd, macd, cycleLength)))
+d = ema(k, d1Length)
+kd = nz(fixnan(stoch(d, d, d, cycleLength)))
+stc = ema(kd, d2Length)
+stc := 	stc > 100 ? 100 : stc < 0 ? 0 : stc
+
+
+
+// long = crossover(sma(close, 14), sma(close, 28))
+// short = crossunder(sma(close, 14), sma(close, 28))
+
+long = firstcrossover(stc, lower)
+short = firstcrossunder(stc, upper)
+
+// long = ema20>ema50
+// short = ema50<ema20
+
+if (fromTime and long)
+    strategy.entry("long", strategy.long,1.0, when = long)
+
+
+if (fromTime and short)
+    strategy.entry("Short", strategy.short,1.0, when = short)
+    
+// strategy.close("Long",when=short)    
+// strategy.close("Short",when=long)    
+    
+    

@@ -1,0 +1,35 @@
+//@version=4
+strategy("Take profits & stop losses", overlay=true)
+
+// Create Indicator's
+shortSMA = sma(close, 10)
+longSMA = sma(close, 30)
+rsi = rsi(close, 14)
+atr = atr(14)
+
+// Specify crossover conditions
+longCondition = crossover(shortSMA, longSMA)
+shortCondition = crossunder(shortSMA, longSMA)
+
+unitsback = 30
+fromTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow) - unitsback, hour(timenow), minute(timenow), second(timenow))
+toTime = timestamp(syminfo.timezone, year(timenow), month(timenow), dayofmonth(timenow), hour(timenow), minute(timenow), second(timenow))
+
+inDateRange = (time >= fromTime) and (time < toTime)
+
+// Execute trade if condition is True
+if (inDateRange and longCondition)
+    stopLoss = low - atr * 2
+    takeProfit = high + atr * 2
+    strategy.entry("long", strategy.long, 100, when = rsi > 50)
+    strategy.exit("exit", "long", stop=stopLoss, limit=takeProfit)
+
+if (inDateRange and shortCondition)
+    stopLoss = high + atr * 2
+    takeProfit = low - atr * 2
+    strategy.entry("short", strategy.short, 100, when = rsi < 50)
+    strategy.exit("exit", "short", stop=stopLoss, limit=takeProfit)
+
+// Plot Moving Average's to chart
+plot(shortSMA)
+plot(longSMA, color=color.black)

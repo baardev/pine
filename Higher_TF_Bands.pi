@@ -1,0 +1,65 @@
+//@version=4
+study(title="Higher TF BBands", shorttitle="TF BBands", overlay=false)
+
+
+getLevel() =>
+
+    // Get user input
+    tf = input(title="BBands Timeframe", type=input.resolution, defval="15")
+    len = input(title="Length", type=input.integer, defval=20) 
+    stddev = input(title='StdDev', type=input.integer, defval=2)
+    d1  = input(title='d1', type=input.integer, defval=100)
+    d2  = input(title='d2', type=input.integer, defval=70)
+    
+    // tf = 15
+    // len = 20
+    // stddev = 2
+    // d1  = 100
+    // d2  = 70
+    
+    
+    [middle, upper, lower] = bb(close, len, stddev)
+    
+    hbbandsMid = security(syminfo.tickerid, tf, middle, barmerge.gaps_on, barmerge.lookahead_off)
+    
+    x = cci(hbbandsMid,d1)
+    x := ema(x,2)
+    x := ema(x,4)
+    x := ema(x,8)
+    x := ema(x,16)
+    x := ema(x,32)
+    x := ema(x,32)
+    x := ema(x,32)
+    
+    y = cci(hbbandsMid,d2)
+    y := ema(y,2)
+    y := ema(y,4)
+    y := ema(y,8)
+    y := ema(y,16)
+    y := ema(y,32)
+    y := ema(y,32)
+    y := ema(y,32)
+    
+    x := x+1
+    
+    // hline(0)
+    // plot(x)
+    // plot(y, color=color.red)
+    delta = x-y
+
+    state = delta > 0 ? "BULL" : "BEAR"
+
+    [delta,state]
+
+[delta,bb] = getLevel()
+
+backgroundColour = (bb == "BEAR") ? color.red : color.green
+
+bgcolor(color=backgroundColour, transp=85)
+
+plot(delta, color=color.yellow)
+
+
+
+// plot(hbbandsUpper)
+// plot(hbbandsLower)

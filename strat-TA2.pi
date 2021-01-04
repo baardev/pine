@@ -1,0 +1,284 @@
+//@version=4
+strategy("strat-TA2", overlay=false, pyramiding=0)
+
+// 🔥 
+// 🏹 
+// 🎯 
+
+// ❗ 
+
+// 📝 
+// 📈 
+// 👇  
+// 👆 
+// 📉 
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Function definitions
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// ————— When scale of signal to rescale is known.
+// rescale(_src, _oldMin, _oldMax, _newMin, _newMax) =>
+//     _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+r100(_src) => 
+    _oldMin = lowest(_src,15)
+    _oldMax = highest(_src,15)
+    _newMin = 0
+    _newMax = 100
+    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
+
+// // ————— Normalize Function when min/max unknown
+// normalize(_src, _min, _max) => 
+//     var _historicMin = +10e10
+//     var _historicMax = -10e10
+//     _historicMin := min(nz(_src, _historicMin), _historicMin)
+//     _historicMax := max(nz(_src, _historicMax), _historicMax)
+//     _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+n100(_src) =>
+    _min = 0
+    _max = 100
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    
+xover(a,b) => // passing up across b.  This is TRAILING from under and LEADING from above
+    crossed = false
+    if a>b and a[1] <= b
+        crossed := true
+
+xunder(a,b) => // a passing down across b.  This is TRAILFROM from above and LEADING from unser
+    crossed = false
+    if a<b and a[1] >= b
+        crossed := true
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// set time range
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// BEAR
+// fromTime = input(defval = timestamp("25 Jun 2019 13:30 +0000"), title = "Start Time", type = input.time)
+// toTime = input(defval = timestamp("19 Dec 2019 13:30 +0000"), title = "End Time", type = input.time)
+
+fromTime = input(defval = timestamp("28 Dec 2020 20:00 +0000"), title = "Start Time", type = input.time)
+toTime = input(defval = timestamp("30 Dec 2020 13:30 +0000"), title = "End Time", type = input.time)
+
+inDateRange = (time >= fromTime) and (time < toTime)    //👆
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Indicators
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 SCHAFF 📈
+
+showSCH = input(title="Show Schaff", type=input.bool, defval=false)
+fastLength = input(title="MACD Fast Length", type=input.integer, defval=23)
+slowLength = input(title="MACD Slow Length", type=input.integer, defval=50)
+cycleLength = input(title="Cycle Length", type=input.integer, defval=10)
+d1Length = input(title="1st %D Length", type=input.integer, defval=3)
+d2Length = input(title="2nd %D Length", type=input.integer, defval=3)
+src = input(title="Source", type=input.source, defval=close)
+highlightBreakouts = true //input(title="Highlight Breakouts ?", type=input.bool, defval=true)
+
+macd = ema(src, fastLength) - ema(src, slowLength)
+k = nz(fixnan(stoch(macd, macd, macd, cycleLength)))
+d = ema(k, d1Length)
+kd = nz(fixnan(stoch(d, d, d, cycleLength)))
+
+stc = ema(kd, d2Length)
+stc := 	stc > 100 ? 100 : stc < 0 ? 0 : stc
+
+stcColor = not highlightBreakouts ? (stc > stc[1] ? color.yellow : color.orange) : #ff3013
+stcPlot = plot(stc, title="STC", color=iff(showSCH,stcColor,na), transp=0)
+
+upper = 75
+lower = 25
+
+transparent = color.new(color.white, 100)
+
+upperLevel = plot(upper, title="Upper", color=color.gray)
+hline(50, color=iff(showSCH,color.gray,na) )
+lowerLevel = plot(lower, title="Lower", color=color.gray)
+
+fill(upperLevel, lowerLevel,  color=iff(showSCH,#f9cb9c,na), transp=90) 
+
+upperFillColor = stc > upper and highlightBreakouts ? iff(showSCH,color.green,na) : transparent
+lowerFillColor = stc < lower and highlightBreakouts ? iff(showSCH,color.red,na) : transparent
+
+fill(upperLevel, stcPlot, color=iff(showSCH,upperFillColor,na), transp=80)
+fill(lowerLevel, stcPlot, color=iff(showSCH,lowerFillColor,na), transp=80)
+
+plotshape(crossover(stc, lower) ? lower : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=iff(showSCH,color.green,na), transp=0)
+plotshape(crossunder(stc, upper) ? upper : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=iff(showSCH,color.red,na), transp=0)
+
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 APO 📈
+
+showAPO = input(title="Show APO", type=input.bool, defval=true)
+LengthShortEMA = input(10, title="APO short", minval=1)
+LengthLongEMA = input(20, title="APO long",minval=1)
+xAPO_hi = input(title="API hi", type=input.integer, defval=85) 
+xAPO_lo = input(title="API lo", type=input.integer, defval=7)
+xRSI = input(title="RSI", type=input.integer, defval=2)
+
+// hline(0, color=color.gray, linestyle=hline.style_solid)
+hline(50, color=iff(showAPO,color.aqua,na))
+hline(xAPO_hi, color=iff(showAPO,color.aqua,na))
+hline(xAPO_lo, color=iff(showAPO,color.aqua,na))
+
+xPrice = close
+xShortEMA = ema(xPrice, LengthShortEMA)
+xLongEMA = ema(xPrice, LengthLongEMA)
+xAPO = ema(rsi(xShortEMA - xLongEMA,xRSI),5)
+
+// xAPO := xAPO * 3
+
+plotchar(xAPO[1], "APO[1]","")
+
+xd = input(title="pct delta", type=input.float, defval=.05)
+
+plotshape(crossover(xAPO, xAPO_lo) ? xAPO_lo : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny,  transp=0, color=iff(showAPO,color.aqua,na))
+plotshape(crossunder(xAPO, xAPO_hi) ? xAPO_hi : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, transp=0, color=iff(showAPO,color.orange,na))
+
+
+// xAPO_sell = (xAPO >= xAPO_hi)  ? true : false 
+// xAPO_buy = (xAPO <= xAPO_lo) ? true : false
+
+xAPO_sell = xunder(xAPO,xAPO_hi) ? true : false
+xAPO_buy = xover(xAPO,xAPO_lo) ? true : false
+ 
+// xAPO_sell = ((xAPO > xAPO_hi) and (xAPO < xAPO[1])) ? true : false
+// xAPO_buy = ((xAPO < xAPO_lo) and (xAPO > xAPO[1])) ? true : false
+
+plot(xAPO, title="APO", color=iff(showAPO,color.aqua,na))
+
+
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 RSI Limits 📈 
+ 
+showRSI = input(title="Show RSI", type=input.bool, defval=true)
+iRSI_len = input(title="RSI Length", type=input.integer, defval=14)
+iRSI_hi = input(title="RSI hi", type=input.integer, defval=70) 
+iRSI_lo = input(title="RSI lo", type=input.integer, defval=30)
+
+
+iRSI = rsi(close, iRSI_len)
+
+iRSI_Long = false
+iRSI_Short = false
+
+iRSI_Long := iRSI < iRSI_lo ? true : false   //👆
+iRSI_Short:= iRSI > iRSI_hi ? true : false   //👆
+
+plot(iRSI, color=iff(showRSI,color.yellow,na))
+
+hline(50, color=iff(showRSI,color.yellow,na))
+hline(iRSI_hi, color=iff(showRSI,color.yellow,na))
+hline(iRSI_lo, color=iff(showRSI,color.yellow,na))
+
+plotchar(iRSI_Long, "iRSI_Long","")
+plotchar(iRSI_Short, "iRSI_Short","")
+
+
+var label iRSI_lbl = na
+label.delete(iRSI_lbl)
+iRSI_lbl := label.new(bar_index, high, text = "                               RSI", style = label.style_none, size = size.normal)
+label.set_xy(iRSI_lbl, bar_index, iRSI)
+label.set_textcolor(id=iRSI_lbl, textcolor=color.yellow)
+
+// 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈 APSC merge 📈 
+
+
+showAPSC = input(title="Show APSC", type=input.bool, defval=true)
+xAPSC_hi = input(title="APSC hi", type=input.integer, defval=70) 
+xAPSC_lo = input(title="APSC lo", type=input.integer, defval=30)
+xRSIC = input(title="RSIC", type=input.integer, defval=2)
+
+// hline(0, color=color.gray, linestyle=hline.style_solid)
+hline(50, color=iff(showAPSC,color.aqua,na))
+hline(xAPSC_hi, color=iff(showAPSC,color.aqua,na))
+hline(xAPSC_lo, color=iff(showAPSC,color.aqua,na))
+
+// xAPSC = iRSI - stc
+xAPSC = rsi(iRSI - stc, xRSIC)
+
+plot(xAPSC,color=iff(showAPSC,color.aqua,na), linewidth=2)
+
+plotshape(crossover(xAPSC, xAPSC_lo) ? xAPSC_lo : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny,  transp=0,color=iff(showAPSC,color.aqua,na))
+plotshape(crossunder(xAPSC, xAPSC_hi) ? xAPSC_hi : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, transp=0, color=iff(showAPSC,color.orange,na))
+
+xAPSC_buy = crossover(xAPSC, xAPSC_lo)? true : false
+xAPSC_sell = crossunder(xAPSC, xAPSC_hi) ? true : false
+
+
+
+// // ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Variables
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+atr = atr(14)
+var lastBuyAry  = array.new_float(0)
+lastBuy = 0
+array.push(lastBuyAry,lastBuy)
+stopLoss = low - atr * 2
+takeProfit = high + atr * 2
+
+
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+// Specify conditions and Run
+// 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+// goShort = (inDateRange and p > 60) ? true : false
+// goLong = (inDateRange and p <40) ? true : false
+
+// goLong = (inDateRange and iRSI_Long and APO_bull) ? true : false
+// goShort = (inDateRange and iRSI_Short and APO_bear) ? true : false
+
+goLong = (inDateRange and xAPSC_buy) ? true : false
+goShort = (inDateRange and xAPSC_sell) ? true : false
+
+// goShort = (inDateRange and iEMA_Short) ? true : false
+// goLong = (inDateRange and iEMA_Long) ? true : false
+
+// goShort = (inDateRange and shortEMAdn) ? true : false
+// goLong = (inDateRange and shortEMAup) ? true : false
+
+var float startingClose= na
+var float endingClose= na
+var float noTrade = na
+var string noTradeStr = na
+
+plotchar(startingClose, "startingClose","")
+plotchar(endingClose, "endingClose","")
+plotchar(noTrade, "noTrade","")
+
+
+if goLong 
+    // strategy.entry(id="L", long=true, qty=10)
+    strategy.entry(id="Buy", long=true, qty=10)
+    if not startingClose
+        startingClose := close 
+
+if goShort     
+    // strategy.entry(id="long", long=true, qty=10)
+    // strategy.close(id="L") 
+    strategy.entry(id="Sell",long=false, qty=10)
+    // strategy.exit("short", stop=stopLoss, when = not goShort)
+    endingClose := close
+
+noTrade := ((endingClose - startingClose) / startingClose) * 100 
+// ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
+ 
+
+// strategy.exit("exit", "long", stop=stopLoss, limit=takeProfit)
+
+// if (goShort) 
+//     stopLoss = high + atr * 2
+//     takeProfit = low - atr * 2
+//     strategy.entry("short", strategy.short, 100, when = rsi < 50)
+    //  strategy.exit("exit", "short", stop=stopLoss, limit=takeProfit)
+

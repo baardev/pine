@@ -1,0 +1,7 @@
+hopper_id:575231
+coin:BTC
+action:{{strategy.order.action}}
+market_order:1
+
+
+https://www.cryptohopper.com/tradingview_alerts/hook?key=xvVQPlNZZmqenS5dzP0DIbSroi2cVh61KYpnmzO53dLaKH6vdDfR7vF89jb81Hqd

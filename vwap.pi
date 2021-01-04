@@ -1,0 +1,55 @@
+//@version=4
+study(title="vwap", shorttitle="vwap", overlay=false)
+
+
+
+normalize(_src, _min, _max) => 
+    var _historicMin = +10e10
+    var _historicMax = -10e10
+    _historicMin := min(nz(_src, _historicMin), _historicMin)
+    _historicMax := max(nz(_src, _historicMax), _historicMax)
+    _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
+
+
+scaleTo(ser,lo,hi) =>
+    ser > hi ? hi : ser < lo ? lo : ser
+
+// Calculate the VWAP of closing prices 
+closeVwap = vwap(close)
+
+// Calculate the VWAP of high-low differences
+
+hlVwap = vwap(high - low)
+
+d=16
+d1=10
+ema1 = cci(closeVwap,d)
+ema1 := ema(ema1,d) 
+ema1 := ema(ema1,d) 
+ema1 := ema(ema1,d) 
+ema1 := ema(ema1,d) 
+ema1 := ema(ema1,d) 
+ema1 := normalize(ema1,0,100) 
+
+
+// ema2 = cci(closeVwap,d1) 
+// ema2 := ema(ema2,d1) 
+// ema2 := ema(ema2,d1) 
+// ema2 := ema(ema2,d1) 
+// ema2 := ema(ema2,d1) 
+// ema2 := ema(ema2,d1) 
+
+plot(   ema1, color=color.red)
+
+hline(90)
+hline(50)
+hline(10)
+
+// plot(   ema2, color=color.blue)
+
+// plot(   ema1-ema2 , color=color.purple) 
+
+
+
+// plot(hlVwap, color=color.green)
+// plot( (hlVwap+closeVwap)/1, color=color.yellow)
